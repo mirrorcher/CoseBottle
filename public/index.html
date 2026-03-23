@@ -1,0 +1,1929 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Upgrade + Crash</title>
+  <style>
+    :root{
+      --bg1:#090b10;
+      --bg2:#0f1320;
+      --line:rgba(255,255,255,.07);
+      --text:#f3f6fb;
+      --muted:#8f99ad;
+      --gold1:#8d7a0c;
+      --gold2:#7c5f07;
+      --gold3:#ff8c00;
+      --lose1:#343a49;
+      --lose2:#1f2430;
+      --center1:#181d29;
+      --center2:#0d1118;
+      --green1:#6dff9b;
+      --green2:#22d36b;
+      --red1:#ff7a7a;
+      --red2:#ff4747;
+    }
+
+    *{box-sizing:border-box}
+
+    html,body{
+      margin:0;
+      min-height:100%;
+      font-family:Inter, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at 50% 14%, rgba(255,179,0,.12), transparent 24%),
+        radial-gradient(circle at 18% 85%, rgba(255,140,0,.06), transparent 22%),
+        radial-gradient(circle at 82% 80%, rgba(255,210,80,.04), transparent 18%),
+        linear-gradient(180deg, var(--bg2), var(--bg1));
+    }
+
+    body{
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      padding:20px;
+    }
+
+    .app{
+      width:min(860px, 100%);
+      border-radius:30px;
+      padding:24px;
+      background:linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015));
+      border:1px solid var(--line);
+      box-shadow:
+        0 25px 80px rgba(0,0,0,.5),
+        inset 0 1px 0 rgba(255,255,255,.05);
+      position:relative;
+      overflow:hidden;
+      backdrop-filter: blur(14px);
+    }
+
+    
+
+    .app::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:radial-gradient(circle at 50% 0%, rgba(255,190,0,.09), transparent 28%);
+    }
+
+    .topbar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      margin-bottom:14px;
+      position:relative;
+      z-index:2;
+    }
+
+    .title{
+      font-size:24px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .chance{
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#ffdf7f;
+      background:linear-gradient(180deg, rgba(255,190,0,.18), rgba(255,140,0,.10));
+      border:1px solid rgba(255,190,0,.24);
+      box-shadow:0 0 22px rgba(255,179,0,.08);
+    }
+
+    .mode-switch{
+      display:grid;
+      grid-template-columns:1fr 1fr;
+      gap:12px;
+      margin-bottom:16px;
+      position:relative;
+      z-index:2;
+    }
+
+    .mode-btn{
+      height:48px;
+      border:none;
+      border-radius:16px;
+      cursor:pointer;
+      font-size:15px;
+      font-weight:900;
+      letter-spacing:.04em;
+      color:#edf2fb;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+      border:1px solid rgba(255,255,255,.08);
+      transition:.2s ease;
+    }
+
+    .mode-btn:hover{
+      transform:translateY(-1px);
+    }
+
+    .mode-btn.active{
+      color:#1b1300;
+      background:linear-gradient(180deg, #ffd44e, #ff9a00);
+      box-shadow:
+        0 12px 30px rgba(255,153,0,.20),
+        inset 0 1px 0 rgba(255,255,255,.34);
+    }
+
+    .screen{
+      position:relative;
+      z-index:2;
+    }
+
+    .hidden{
+      display:none;
+    }
+
+    /* UPGRADE */
+    .stage{
+      display:flex;
+      justify-content:center;
+      align-items:center;
+      padding:4px 0 22px;
+      position:relative;
+      z-index:2;
+    }
+
+    .wheel-wrap{
+      position:relative;
+      width:min(560px, 88vw);
+      aspect-ratio:1/1;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+    }
+
+    .glow{
+      position:absolute;
+      inset:10%;
+      border-radius:50%;
+      background:
+        radial-gradient(circle, rgba(255,190,0,.18), transparent 56%),
+        radial-gradient(circle, rgba(255,120,0,.09), transparent 74%);
+      filter:blur(24px);
+      animation:pulse 3s ease-in-out infinite;
+    }
+
+    @keyframes pulse{
+      0%,100%{transform:scale(1.02);opacity:.78}
+      50%{transform:scale(1.08);opacity:1}
+    }
+
+    .ring-shell{
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.10), rgba(255,255,255,.02));
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 -30px 42px rgba(0,0,0,.35),
+        0 0 40px rgba(255,170,0,.08);
+    }
+
+    .info-banner.show-guest{
+  display:block;
+  animation:guestBannerPulse .28s ease;
+}
+
+@keyframes guestBannerPulse{
+  0%{
+    transform:translateY(-6px);
+    opacity:0;
+  }
+  100%{
+    transform:translateY(0);
+    opacity:1;
+  }
+}
+
+    .arc{
+      position:absolute;
+      inset:22px;
+      border-radius:50%;
+      background:
+        conic-gradient(
+          from 180deg,
+          #ffe96a 0deg,
+          #ffc400 60deg,
+          #ff9a00 180deg,
+          #343a49 180deg,
+          #2a2f3d 290deg,
+          #1f2430 360deg
+        );
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.04),
+        0 0 26px rgba(255,179,0,.10);
+      -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 60px), #000 calc(100% - 59px));
+              mask: radial-gradient(farthest-side, transparent calc(100% - 60px), #000 calc(100% - 59px));
+    }
+
+    .arc::after{
+      content:"";
+      position:absolute;
+      inset:0;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,.14), transparent 18%),
+        radial-gradient(circle at 50% 50%, transparent 60%, rgba(0,0,0,.10) 100%);
+      pointer-events:none;
+    }
+
+    .split-line{
+      position:absolute;
+      width:2px;
+      height:64%;
+      left:50%;
+      top:18%;
+      transform:translateX(-50%);
+      background:linear-gradient(180deg, rgba(255,255,255,.25), rgba(255,255,255,.08));
+      box-shadow:0 0 12px rgba(255,255,255,.10);
+      z-index:3;
+    }
+
+    .labels-svg{
+      position:absolute;
+      inset:22px;
+      z-index:5;
+      pointer-events:none;
+      overflow:visible;
+    }
+
+    .labels-svg .win-text{
+      fill:#fff4ba;
+      font-size:30px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .labels-svg .lose-text{
+      fill:#9aa3b2;
+      font-size:28px;
+      font-weight:900;
+      letter-spacing:.02em;
+    }
+
+    .demo-actions{
+      margin-top:12px;
+      display:flex;
+      justify-content:flex-start;
+    }
+
+    .center{
+      position:absolute;
+      width:225px;
+      height:225px;
+      border-radius:50%;
+      background:
+        radial-gradient(circle at 35% 35%, rgba(255,255,255,.10), transparent 16%),
+        linear-gradient(180deg, var(--center1), var(--center2));
+      border:1px solid rgba(255,255,255,.07);
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:center;
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        inset 0 -18px 24px rgba(0,0,0,.30),
+        0 0 18px rgba(255,179,0,.08);
+      z-index:4;
+      text-align:center;
+      padding:18px;
+    }
+
+    .center .percent{
+      font-size:42px;
+      font-weight:900;
+      color:var(--gold1);
+      line-height:1;
+      text-shadow:0 0 20px rgba(255,220,90,.18);
+    }
+
+    .center .sub{
+      margin-top:8px;
+      font-size:12px;
+      letter-spacing:.12em;
+      text-transform:uppercase;
+      color:var(--muted);
+    }
+
+    .center .brand{
+      margin-top:16px;
+      font-size:30px;
+      font-weight:900;
+      opacity:.08;
+      letter-spacing:.08em;
+      user-select:none;
+    }
+
+    .arrow-rotator{
+      position:absolute;
+      inset:0;
+      transform:rotate(0deg);
+      transition:transform 6s cubic-bezier(.08,.88,.16,1);
+      z-index:6;
+      pointer-events:none;
+    }
+
+    .arrow{
+      position:absolute;
+      left:50%;
+      top:22px;
+      transform:translateX(-50%);
+      width:0;
+      height:0;
+      border-left:8px solid transparent;
+      border-right:8px solid transparent;
+      border-top:34px solid var(--gold1);
+      filter:drop-shadow(0 0 10px rgba(255,190,0,.35));
+    }
+
+    .arrow::before{
+      content:"";
+      position:absolute;
+      left:-4px;
+      top:-31px;
+      width:0;
+      height:0;
+      border-left:4px solid transparent;
+      border-right:4px solid transparent;
+      border-top:18px solid rgba(255,255,255,.30);
+      opacity:.6;
+    }
+
+      .arrow::after{
+        display:none;
+      }
+
+    /* COMMON CONTROLS */
+    .controls{
+      display:grid;
+      grid-template-columns:1fr 220px;
+      gap:14px;
+      position:relative;
+      z-index:2;
+    }
+
+    .input{
+      position:relative;
+    }
+
+    .input .cur{
+      position:absolute;
+      left:18px;
+      top:50%;
+      transform:translateY(-50%);
+      color:var(--gold1);
+      font-size:20px;
+      font-weight:900;
+      z-index:2;
+      text-shadow:0 0 12px rgba(255,220,80,.12);
+    }
+
+    .input input{
+      width:100%;
+      height:62px;
+      border:none;
+      outline:none;
+      border-radius:18px;
+      padding:0 18px 0 48px;
+      background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+      border:1px solid rgba(255,255,255,.08);
+      color:var(--text);
+      font-size:18px;
+      font-weight:800;
+      box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .btn{
+      border:none;
+      border-radius:18px;
+      cursor:pointer;
+      font-size:17px;
+      font-weight:900;
+      color:#1b1300;
+      background:linear-gradient(180deg, #ffd44e, #ff9a00);
+      box-shadow:
+        0 12px 30px rgba(255,153,0,.24),
+        inset 0 1px 0 rgba(255,255,255,.34);
+      transition:.2s ease;
+      position:relative;
+      overflow:hidden;
+    }
+
+    .btn:hover{transform:translateY(-2px)}
+    .btn:active{transform:translateY(0)}
+    .btn:disabled{opacity:.7;cursor:not-allowed;transform:none}
+
+    .btn::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(110deg, transparent 20%, rgba(255,255,255,.24), transparent 80%);
+      transform:translateX(-120%);
+      animation:shine 3s linear infinite;
+    }
+
+    @keyframes shine{
+      to{transform:translateX(120%)}
+    }
+
+    .bottom{
+      margin-top:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:16px 18px;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.07);
+      position:relative;
+      z-index:2;
+    }
+
+    .result{
+      font-size:17px;
+      font-weight:800;
+    }
+
+    .result small{
+      display:block;
+      margin-top:5px;
+      font-size:13px;
+      color:var(--muted);
+      font-weight:500;
+    }
+
+    .status{
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid rgba(255,255,255,.08);
+      white-space:nowrap;
+    }
+
+    .idle{
+      background:rgba(255,255,255,.04);
+      color:#ebeff7;
+    }
+
+    .win{
+      background:linear-gradient(180deg, #ffd962, #ffb300);
+      color:#211600;
+      box-shadow:0 0 20px rgba(255,179,0,.20);
+    }
+
+    .lose{
+      background:linear-gradient(180deg, rgba(255,85,85,.22), rgba(255,85,85,.10));
+      color:#ffd1d1;
+      border-color:rgba(255,85,85,.22);
+    }
+
+    /* CRASH */
+    .crash-stage{
+      padding:10px 0 8px;
+    }
+
+    .crash-card{
+      border-radius:26px;
+      padding:28px 22px 22px;
+      background:
+        radial-gradient(circle at 50% 0%, rgba(80,255,150,.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.08);
+      box-shadow:
+        inset 0 1px 0 rgba(255,255,255,.05),
+        0 20px 60px rgba(0,0,0,.35);
+      overflow:hidden;
+      position:relative;
+    }
+
+    .crash-card::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.02), transparent 40%);
+    }
+
+    .crash-visual{
+      position:relative;
+      height:320px;
+      border-radius:22px;
+      overflow:hidden;
+      border:1px solid rgba(255,255,255,.06);
+      background:
+        radial-gradient(circle at 30% 20%, rgba(80,255,150,.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.01));
+      margin-bottom:16px;
+    }
+
+    .crash-grid{
+      position:absolute;
+      inset:0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.05) 1px, transparent 1px);
+      background-size:44px 44px;
+      opacity:.4;
+      mask-image:linear-gradient(180deg, rgba(0,0,0,.9), rgba(0,0,0,.35));
+    }
+
+    .crash-line{
+      position:absolute;
+      left:34px;
+      right:24px;
+      bottom:34px;
+      top:24px;
+      overflow:hidden;
+    }
+
+    .crash-line svg{
+      width:100%;
+      height:100%;
+      display:block;
+    }
+
+    .crash-multiplier{
+      position:absolute;
+      left:50%;
+      top:50%;
+      transform:translate(-50%, -50%);
+      font-size:74px;
+      font-weight:900;
+      line-height:1;
+      color:var(--green1);
+      text-shadow:0 0 28px rgba(109,255,155,.16);
+      z-index:3;
+      transition:.15s ease;
+    }
+
+    .crash-sub{
+      position:absolute;
+      left:50%;
+      top:calc(50% + 52px);
+      transform:translateX(-50%);
+      color:var(--muted);
+      font-size:14px;
+      z-index:3;
+    }
+
+    .crash-controls{
+      display:grid;
+      grid-template-columns:1fr 180px 180px;
+      gap:14px;
+    }
+
+    .btn-green{
+      color:#08200f;
+      background:linear-gradient(180deg, #7bffab, #1ecf66);
+      box-shadow:
+        0 12px 30px rgba(34,211,107,.20),
+        inset 0 1px 0 rgba(255,255,255,.35);
+    }
+
+    .btn-red{
+      color:#2a0909;
+      background:linear-gradient(180deg, #ff8f8f, #ff4c4c);
+      box-shadow:
+        0 12px 30px rgba(255,76,76,.22),
+        inset 0 1px 0 rgba(255,255,255,.28);
+    }
+
+    .btn-green::before,
+    .btn-red::before{
+      content:"";
+      position:absolute;
+      inset:0;
+      background:linear-gradient(110deg, transparent 20%, rgba(255,255,255,.24), transparent 80%);
+      transform:translateX(-120%);
+      animation:shine 3s linear infinite;
+    }
+
+    .crash-bottom{
+      margin-top:14px;
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      padding:16px 18px;
+      border-radius:18px;
+      background:linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border:1px solid rgba(255,255,255,.07);
+    }
+
+    .crash-badge{
+      padding:10px 14px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:900;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      border:1px solid rgba(255,255,255,.08);
+      white-space:nowrap;
+    }
+
+    .crash-badge.ready{
+      background:rgba(255,255,255,.04);
+      color:#ebeff7;
+    }
+
+    .crash-badge.running{
+      background:linear-gradient(180deg, rgba(123,255,171,.22), rgba(30,207,102,.12));
+      color:#c9ffdc;
+      border-color:rgba(123,255,171,.16);
+    }
+
+    .crash-badge.crashed{
+      background:linear-gradient(180deg, rgba(255,120,120,.24), rgba(255,76,76,.12));
+      color:#ffd6d6;
+      border-color:rgba(255,120,120,.18);
+    }
+
+    .crash-badge.cashed{
+      background:linear-gradient(180deg, #ffd962, #ffb300);
+      color:#211600;
+      box-shadow:0 0 20px rgba(255,179,0,.16);
+    }
+
+    /* AUTH */
+.account-bar{
+  margin-bottom:16px;
+  display:grid;
+  grid-template-columns:1fr auto;
+  gap:14px;
+  align-items:stretch;
+  position:relative;
+  z-index:2;
+}
+
+.account-card{
+  border-radius:20px;
+  padding:14px 16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.02));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 12px 30px rgba(0,0,0,.18);
+}
+
+.account-top{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  margin-bottom:8px;
+}
+
+.account-name{
+  font-size:16px;
+  font-weight:900;
+  color:var(--text);
+}
+
+.account-mode{
+  padding:8px 12px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:900;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.08);
+  white-space:nowrap;
+}
+
+.account-mode.demo{
+  color:#ffdf7f;
+  background:linear-gradient(180deg, rgba(255,190,0,.16), rgba(255,140,0,.08));
+  border-color:rgba(255,190,0,.22);
+}
+
+.account-mode.real{
+  color:#c9ffdc;
+  background:linear-gradient(180deg, rgba(123,255,171,.18), rgba(30,207,102,.08));
+  border-color:rgba(123,255,171,.16);
+}
+
+.account-row{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  flex-wrap:wrap;
+}
+
+.balance-box{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+}
+
+.balance-label{
+  color:var(--muted);
+  font-size:12px;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  font-weight:800;
+}
+
+.balance-value{
+  color:var(--gold1);
+  font-size:28px;
+  font-weight:900;
+  text-shadow:0 0 18px rgba(255,220,90,.12);
+}
+
+.account-actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.mini-btn{
+  height:42px;
+  padding:0 16px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:900;
+  letter-spacing:.04em;
+  color:#edf2fb;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+  border:1px solid rgba(255,255,255,.08);
+  transition:.2s ease;
+}
+
+.mini-btn:hover{ transform:translateY(-1px); }
+
+.mini-btn.gold{
+  color:#1b1300;
+  background:linear-gradient(180deg, #ffd44e, #ff9a00);
+  box-shadow:
+    0 12px 30px rgba(255,153,0,.18),
+    inset 0 1px 0 rgba(255,255,255,.34);
+}
+
+.info-banner{
+  margin-bottom:16px;
+  padding:14px 16px;
+  border-radius:18px;
+  background:linear-gradient(180deg, rgba(255,190,0,.12), rgba(255,140,0,.06));
+  border:1px solid rgba(255,190,0,.18);
+  color:#ffe8a2;
+  font-size:14px;
+  line-height:1.45;
+  box-shadow:0 12px 30px rgba(255,153,0,.08);
+  position:relative;
+  z-index:2;
+}
+
+.auth-modal{
+  position:fixed;
+  inset:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:rgba(5,7,12,.62);
+  backdrop-filter:blur(8px);
+  z-index:100;
+}
+
+.auth-modal.hidden{
+  display:none;
+}
+
+.auth-panel{
+  width:min(520px, 100%);
+  border-radius:26px;
+  padding:22px;
+  background:linear-gradient(180deg, rgba(20,24,34,.96), rgba(11,15,23,.96));
+  border:1px solid rgba(255,255,255,.08);
+  box-shadow:
+    0 25px 80px rgba(0,0,0,.45),
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.auth-title{
+  font-size:22px;
+  font-weight:900;
+  margin-bottom:8px;
+}
+
+.auth-sub{
+  color:var(--muted);
+  font-size:14px;
+  margin-bottom:16px;
+}
+
+.auth-tabs{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin-bottom:14px;
+}
+
+.auth-tab{
+  height:44px;
+  border:none;
+  border-radius:14px;
+  cursor:pointer;
+  font-size:13px;
+  font-weight:900;
+  color:#edf2fb;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.025));
+  border:1px solid rgba(255,255,255,.08);
+}
+
+.auth-tab.active{
+  color:#1b1300;
+  background:linear-gradient(180deg, #ffd44e, #ff9a00);
+}
+
+.auth-form{
+  display:grid;
+  gap:12px;
+}
+
+.auth-form.hidden{
+  display:none;
+}
+
+.auth-input{
+  width:100%;
+  height:56px;
+  border:none;
+  outline:none;
+  border-radius:16px;
+  padding:0 16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.03));
+  border:1px solid rgba(255,255,255,.08);
+  color:var(--text);
+  font-size:16px;
+  font-weight:700;
+}
+
+.auth-buttons{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:4px;
+}
+
+.auth-note{
+  margin-top:12px;
+  min-height:20px;
+  color:#ffe8a2;
+  font-size:13px;
+  line-height:1.45;
+}
+
+.locked{
+  opacity:.55;
+  pointer-events:none;
+  filter:grayscale(.12);
+}
+
+  @media (max-width:700px){
+    .account-bar{
+      grid-template-columns:1fr;
+    }
+
+    #logoutBtn{
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 4px;
+}
+
+    .account-row{
+      align-items:flex-start;
+    }
+
+    .balance-value{
+      font-size:24px;
+    }
+  }
+
+    @media (max-width:700px){
+      .title{font-size:21px}
+      .controls{grid-template-columns:1fr}
+      .crash-controls{grid-template-columns:1fr}
+      .center{
+        width:185px;
+        height:185px;
+      }
+      .center .percent{font-size:34px}
+      .labels-svg .win-text{font-size:28px}
+      .labels-svg .lose-text{font-size:26px}
+      .arrow{
+        border-left:7px solid transparent;
+        border-right:7px solid transparent;
+        border-top:28px solid var(--gold1);
+        top:18px;
+      }
+      .arrow::before{
+        left:-3px;
+        top:-25px;
+        border-left:3px solid transparent;
+        border-right:3px solid transparent;
+        border-top:14px solid rgba(255,255,255,.28);
+      }
+      .crash-multiplier{
+        font-size:56px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <div class="topbar">
+      <div class="title">Апгрейд / Crash</div>
+      <div class="chance">Premium UI</div>
+    </div>
+
+    <div class="mode-switch">
+      <button class="mode-btn active" id="showUpgrade">Upgrade</button>
+      <button class="mode-btn" id="showCrash">Crash</button>
+    </div>
+
+    <div class="account-bar">
+  <div class="account-card">
+    <div class="account-top">
+      <div class="account-name" id="accountName">Гость</div>
+      <div class="account-mode demo" id="accountMode">demo mode</div>
+    </div>
+
+    <div class="account-row">
+      <div class="balance-box">
+        <div class="balance-label">Баланс</div>
+        <div class="balance-value">$<span id="balanceValue">1000</span></div>
+      </div>
+
+      <div class="account-actions">
+        <button class="mini-btn gold" id="openAuthBtn">Аккаунт</button>
+        <button class="mini-btn" id="logoutBtn" style="display:none;">Выйти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="info-banner hidden" id="demoBanner">
+  <div id="demoBannerText">
+    Вы не подтвердили почту. Вам выдано 1000 монет и включён демо-режим.<br>
+    Вам доступны только режимы «Апгрейдер» и «Краш».<br>
+    Чтобы открыть все режимы, подтвердите почту.
+  </div>
+
+  <div class="demo-actions">
+    <button class="mini-btn gold" id="openVerifyFromBannerBtn" type="button">
+      Подтвердить почту
+    </button>
+  </div>
+</div>
+
+<div class="info-banner hidden" id="guestBanner">
+  <div id="guestBannerText">
+    Войдите в аккаунт, чтобы использовать сайт.
+  </div>
+</div>
+
+    <!-- UPGRADE -->
+    <div class="screen" id="upgradeScreen">
+      <div class="stage">
+        <div class="wheel-wrap">
+          <div class="glow"></div>
+          <div class="ring-shell"></div>
+          <div class="arc"></div>
+          <div class="split-line"></div>
+
+          <svg class="labels-svg" viewBox="0 0 516 516" aria-hidden="true">
+            <text class="win-text" x="118" y="258" text-anchor="middle" dominant-baseline="middle">x2</text>
+            <text class="lose-text" x="398" y="258" text-anchor="middle" dominant-baseline="middle">0</text>
+          </svg>
+
+          <div class="center">
+            <div class="percent">50.00%</div>
+            <div class="sub">шанс апгрейда</div>
+            <div class="brand">UP</div>
+          </div>
+
+          <div class="arrow-rotator" id="arrowRotator">
+            <div class="arrow"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <label class="input">
+          <span class="cur">$</span>
+          <input id="betInput" type="number" min="1" step="1" value="100" placeholder="Ставка">
+        </label>
+        <button class="btn" id="spinBtn">Прокачать</button>
+      </div>
+
+      <div class="bottom">
+        <div class="result" id="resultText">
+          Готово к запуску
+          <small>Левая половина = x2 · Правая = 0</small>
+        </div>
+        <div class="status idle" id="statusBadge">ожидание</div>
+      </div>
+    </div>
+
+    <!-- CRASH -->
+    <div class="screen hidden" id="crashScreen">
+      <div class="crash-stage">
+        <div class="crash-card">
+          <div class="crash-visual">
+            <div class="crash-grid"></div>
+            <div class="crash-line">
+              <svg viewBox="0 0 1000 500" preserveAspectRatio="none">
+                <path id="crashPathGlow" d="" fill="none" stroke="rgba(109,255,155,.16)" stroke-width="16" stroke-linecap="round" />
+                <path id="crashPath" d="" fill="none" stroke="url(#crashGradient)" stroke-width="6" stroke-linecap="round" />
+                <defs>
+                  <linearGradient id="crashGradient" x1="0%" y1="100%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#7bffab" />
+                    <stop offset="100%" stop-color="#1ecf66" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </div>
+
+            <div class="crash-multiplier" id="crashMultiplier">1.00x</div>
+            <div class="crash-sub" id="crashSub">Готов к запуску</div>
+          </div>
+
+          <div class="crash-controls">
+            <label class="input">
+              <span class="cur">$</span>
+              <input id="crashBet" type="number" min="1" step="1" value="100" placeholder="Ставка">
+            </label>
+            <button class="btn btn-green" id="crashStartBtn">Start</button>
+            <button class="btn btn-red" id="cashOutBtn" disabled>Cash Out</button>
+          </div>
+
+          <div class="crash-bottom">
+            <div class="result" id="crashResultText">
+              Готово к запуску
+              <small>Забери деньги до момента краша</small>
+            </div>
+            <div class="crash-badge ready" id="crashBadge">ожидание</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="auth-modal hidden" id="authModal">
+  <div class="auth-panel">
+    <div class="auth-title">Аккаунт</div>
+    <div class="auth-sub">Регистрация, вход и подтверждение почты ✨</div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tabRegister">Регистрация</button>
+      <button class="auth-tab" id="tabLogin">Вход</button>
+    </div>
+
+    <div class="auth-form" id="registerForm">
+      <input class="auth-input" id="regEmail" type="email" placeholder="Почта">
+      <input class="auth-input" id="regUsername" type="text" placeholder="Ник">
+      <input class="auth-input" id="regPassword" type="password" placeholder="Пароль">
+      <div class="auth-buttons">
+        <button class="btn" id="registerBtn" type="button">Зарегистрироваться</button>
+        <button class="mini-btn" id="closeAuthBtn" type="button">Закрыть</button>
+      </div>
+    </div>
+
+    <div class="auth-form hidden" id="loginForm">
+      <input class="auth-input" id="loginEmail" type="email" placeholder="Почта">
+      <input class="auth-input" id="loginPassword" type="password" placeholder="Пароль">
+      <div class="auth-buttons">
+        <button class="btn" id="loginBtn" type="button">Войти</button>
+        <button class="mini-btn" id="closeAuthBtn2" type="button">Закрыть</button>
+      </div>
+    </div>
+
+    <div class="auth-note" id="authNote"></div>
+  </div>
+</div>
+
+<div class="auth-modal hidden" id="verifyModal">
+  <div class="auth-panel">
+    <div class="auth-title">Подтверждение почты</div>
+    <div class="auth-sub">Введите код из письма ✉️</div>
+
+    <div class="auth-form">
+      <input class="auth-input" id="verifyCode" type="text" placeholder="Введите код из письма">
+
+      <div class="auth-buttons">
+        <button class="mini-btn gold" id="verifyBtn" type="button">Продолжить</button>
+        <button class="mini-btn" id="resendCodeBtn" type="button">Повторно отправить</button>
+        <button class="mini-btn" id="closeVerifyBtn" type="button">Закрыть</button>
+      </div>
+    </div>
+
+    <div class="auth-note" id="verifyNote"></div>
+  </div>
+</div>
+
+
+
+  <script>
+  /* MODE SWITCH */
+  const showUpgrade = document.getElementById("showUpgrade");
+  const showCrash = document.getElementById("showCrash");
+  const upgradeScreen = document.getElementById("upgradeScreen");
+  const crashScreen = document.getElementById("crashScreen");
+  const verifyModal = document.getElementById("verifyModal");
+const verifyCode = document.getElementById("verifyCode");
+const verifyBtn = document.getElementById("verifyBtn");
+const resendCodeBtn = document.getElementById("resendCodeBtn");
+const closeVerifyBtn = document.getElementById("closeVerifyBtn");
+const verifyNote = document.getElementById("verifyNote");
+const openVerifyFromBannerBtn = document.getElementById("openVerifyFromBannerBtn");
+
+  function switchToUpgrade(){
+    upgradeScreen.classList.remove("hidden");
+    crashScreen.classList.add("hidden");
+    showUpgrade.classList.add("active");
+    showCrash.classList.remove("active");
+  }
+
+  function switchToCrash(){
+    upgradeScreen.classList.add("hidden");
+    crashScreen.classList.remove("hidden");
+    showUpgrade.classList.remove("active");
+    showCrash.classList.add("active");
+  }
+
+  /* COMMON */
+  function clampBet(value){
+    const n = Math.floor(Number(value));
+    return Number.isFinite(n) && n > 0 ? n : 1;
+  }
+
+  function formatMoney(n){
+    return new Intl.NumberFormat("en-US").format(Number(n) || 0);
+  }
+
+  function normalize(angle){
+    return ((angle % 360) + 360) % 360;
+  }
+
+  function randomBetween(min, max){
+    return Math.random() * (max - min) + min;
+  }
+
+  function setButtonLoading(btn, text){
+    if (!btn) return;
+    btn.dataset.oldText = btn.textContent;
+    btn.textContent = text;
+    btn.disabled = true;
+  }
+
+  function restoreButton(btn){
+    if (!btn) return;
+    if (btn.dataset.oldText) btn.textContent = btn.dataset.oldText;
+    btn.disabled = false;
+  }
+
+  /* ACCOUNT / AUTH */
+  const accountName = document.getElementById("accountName");
+  const accountMode = document.getElementById("accountMode");
+  const balanceValue = document.getElementById("balanceValue");
+  const openAuthBtn = document.getElementById("openAuthBtn");
+  const logoutBtn = document.getElementById("logoutBtn");
+  const demoBanner = document.getElementById("demoBanner");
+  const guestBanner = document.getElementById("guestBanner");
+
+  const authModal = document.getElementById("authModal");
+  const tabRegister = document.getElementById("tabRegister");
+  const tabLogin = document.getElementById("tabLogin");
+  const registerForm = document.getElementById("registerForm");
+  const loginForm = document.getElementById("loginForm");
+  const verifyForm = document.getElementById("verifyForm");
+  const closeAuthBtn = document.getElementById("closeAuthBtn");
+  const closeAuthBtn2 = document.getElementById("closeAuthBtn2");
+  const authNote = document.getElementById("authNote");
+
+  const regEmail = document.getElementById("regEmail");
+  const regUsername = document.getElementById("regUsername");
+  const regPassword = document.getElementById("regPassword");
+  const registerBtn = document.getElementById("registerBtn");
+
+  const loginEmail = document.getElementById("loginEmail");
+  const loginPassword = document.getElementById("loginPassword");
+  const loginBtn = document.getElementById("loginBtn");
+
+  let currentUser = null;
+  let pendingVerificationEmail = "";
+  let isRegistering = false;
+  let isLoggingIn = false;
+
+  function setAuthNote(text, isError = false){
+    authNote.textContent = text || "";
+    authNote.style.color = isError ? "#ffb4b4" : "#ffe8a2";
+  }
+
+  function openAuthModal(){
+    authModal.classList.remove("hidden");
+  }
+
+  function closeAuthModal(){
+    authModal.classList.add("hidden");
+  }
+
+  function openVerifyModal(){
+  if (verifyModal) verifyModal.classList.remove("hidden");
+}
+
+  function closeVerifyModal(){
+    if (verifyModal) verifyModal.classList.add("hidden");
+  }
+
+  function setVerifyNote(text, isError = false){
+    if (!verifyNote) return;
+    verifyNote.textContent = text || "";
+    verifyNote.style.color = isError ? "#ffb4b4" : "#ffe8a2";
+  }
+
+  function showRegisterTab(){
+    tabRegister.classList.add("active");
+    tabLogin.classList.remove("active");
+    registerForm.classList.remove("hidden");
+    loginForm.classList.add("hidden");
+  }
+
+  function showLoginTab(){
+    tabLogin.classList.add("active");
+    tabRegister.classList.remove("active");
+    loginForm.classList.remove("hidden");
+    registerForm.classList.add("hidden");
+  }
+
+  function getBalance(){
+    if (currentUser) return Number(currentUser.balance || 0);
+    return 0;
+  }
+
+  function drawBalance(){
+    if (!balanceValue) return;
+    balanceValue.textContent = formatMoney(getBalance());
+  }
+
+  function showGuestNeedLoginBanner(){
+  if (!guestBanner) return;
+
+  guestBanner.classList.remove("hidden");
+  guestBanner.classList.remove("show-guest");
+
+  void guestBanner.offsetWidth;
+
+  guestBanner.classList.add("show-guest");
+
+  clearTimeout(showGuestNeedLoginBanner._timer);
+  showGuestNeedLoginBanner._timer = setTimeout(() => {
+    guestBanner.classList.add("hidden");
+    guestBanner.classList.remove("show-guest");
+  }, 2400);
+}
+
+function requireAuth(){
+  if (currentUser) return true;
+  showGuestNeedLoginBanner();
+  return false;
+}
+
+  function updateAccountUI(){
+    if (!accountName || !accountMode || !balanceValue) return;
+
+    if (guestBanner) {
+      guestBanner.classList.add("hidden");
+      guestBanner.classList.remove("show-guest");
+    }
+
+    if (currentUser) {
+      accountName.textContent = currentUser.username || currentUser.email || "Игрок";
+      drawBalance();
+
+      if (Number(currentUser.is_verified) === 1) {
+      accountMode.textContent = "verified";
+      accountMode.className = "account-mode real";
+      if (demoBanner) demoBanner.classList.add("hidden");
+      } else {
+      accountMode.textContent = "demo mode";
+      accountMode.className = "account-mode demo";
+      if (demoBanner) demoBanner.classList.remove("hidden");
+      }
+
+      if (logoutBtn) logoutBtn.style.display = "inline-flex";
+      return;
+    }
+
+const verifyForm = document.getElementById("verifyForm");
+const verifyCode = document.getElementById("verifyCode");
+const verifyBtn = document.getElementById("verifyBtn");
+const closeVerifyBtn = document.getElementById("closeVerifyBtn");
+const openVerifyFromBannerBtn = document.getElementById("openVerifyFromBannerBtn");
+
+  accountName.textContent = "Гость";
+  accountMode.textContent = "guest";
+  accountMode.className = "account-mode demo";
+  balanceValue.textContent = "0";
+  if (logoutBtn) logoutBtn.style.display = "none";
+  if (demoBanner) demoBanner.classList.add("hidden");
+}
+  accountName.textContent = "Гость";
+  accountMode.textContent = "demo mode";
+  accountMode.className = "account-mode demo";
+  if (logoutBtn) logoutBtn.style.display = "none";
+  if (demoBanner) demoBanner.classList.remove("hidden");
+  drawBalance();
+
+  async function api(url, options = {}){
+    const response = await fetch(url, {
+      headers: { "Content-Type": "application/json" },
+      credentials: "same-origin",
+      ...options
+    });
+
+    return response.json();
+  }
+
+  async function loadMe(){
+    try {
+      const data = await api("/api/me");
+      if (data.loggedIn && data.user) {
+        currentUser = data.user;
+      } else {
+        currentUser = null;
+      }
+    } catch (e) {
+      currentUser = null;
+    }
+
+    updateAccountUI();
+  }
+
+  async function changeServerBalance(nextBalance){
+    const data = await api("/api/set-balance", {
+      method: "POST",
+      body: JSON.stringify({ balance: nextBalance })
+    });
+
+    if (!data.success) throw new Error(data.message || "Не удалось обновить баланс.");
+    currentUser = data.user;
+    updateAccountUI();
+  }
+
+async function spendMoney(amount){
+  if (!requireAuth()) return false;
+
+  const balance = getBalance();
+  if (balance < amount) {
+    alert("Недостаточно монет 😵");
+    return false;
+  }
+
+  await changeServerBalance(balance - amount);
+  return true;
+}
+
+
+  async function addMoney(amount){
+  if (!currentUser) return;
+  const balance = getBalance();
+  await changeServerBalance(balance + amount);
+}
+
+  if (openAuthBtn) {
+  openAuthBtn.addEventListener("click", openAuthModal);
+}
+
+if (closeAuthBtn) {
+  closeAuthBtn.addEventListener("click", closeAuthModal);
+}
+
+if (closeAuthBtn2) {
+  closeAuthBtn2.addEventListener("click", closeAuthModal);
+}
+
+if (authModal) {
+  authModal.addEventListener("click", (e) => {
+    if (e.target === authModal) closeAuthModal();
+  });
+}
+
+if (tabRegister) {
+  tabRegister.addEventListener("click", showRegisterTab);
+}
+
+if (tabLogin) {
+  tabLogin.addEventListener("click", showLoginTab);
+}
+
+if (registerBtn) {
+  registerBtn.addEventListener("click", async () => {
+    if (isRegistering) return;
+
+    const email = regEmail.value.trim();
+    const username = regUsername.value.trim();
+    const password = regPassword.value;
+
+    if (!email || !username || !password) {
+      setAuthNote("Заполни все поля.", true);
+      return;
+    }
+
+    isRegistering = true;
+    setButtonLoading(registerBtn, "Создание...");
+    setAuthNote("");
+
+    try {
+      const data = await api("/api/register", {
+        method: "POST",
+        body: JSON.stringify({ email, username, password })
+      });
+
+      if (data.success) {
+        pendingVerificationEmail = email;
+        setAuthNote(data.message || "Аккаунт создан.");
+        await loadMe();
+        closeAuthModal();
+      } else {
+        setAuthNote(data.message || "Ошибка регистрации.", true);
+      }
+    } catch (e) {
+      setAuthNote("Ошибка соединения с сервером.", true);
+    }
+
+    restoreButton(registerBtn);
+    isRegistering = false;
+  });
+}
+
+if (loginBtn) {
+  loginBtn.addEventListener("click", async () => {
+    if (isLoggingIn) return;
+
+    const email = loginEmail.value.trim();
+    const password = loginPassword.value;
+
+    if (!email || !password) {
+      setAuthNote("Введи логин/почту и пароль.", true);
+      return;
+    }
+
+    isLoggingIn = true;
+    setButtonLoading(loginBtn, "Вход...");
+    setAuthNote("");
+
+    try {
+      const data = await api("/api/login", {
+        method: "POST",
+        body: JSON.stringify({ email, password })
+      });
+
+      if (data.success) {
+        pendingVerificationEmail = data.user?.email || "";
+        await loadMe();
+        closeAuthModal();
+      } else {
+        setAuthNote(data.message || "Ошибка входа.", true);
+      }
+    } catch (e) {
+      setAuthNote("Ошибка соединения с сервером.", true);
+    }
+
+    restoreButton(loginBtn);
+    isLoggingIn = false;
+  });
+}
+
+function showVerifyOnly(){
+  registerForm.classList.add("hidden");
+  loginForm.classList.add("hidden");
+  verifyForm.classList.remove("hidden");
+}
+
+if (openVerifyFromBannerBtn) {
+  openVerifyFromBannerBtn.addEventListener("click", () => {
+    openVerifyModal();
+    setVerifyNote("Введите код из письма.");
+    if (verifyCode) verifyCode.focus();
+  });
+}
+
+
+if (resendCodeBtn) {
+  resendCodeBtn.addEventListener("click", async () => {
+    setButtonLoading(resendCodeBtn, "Отправка...");
+    setVerifyNote("");
+
+    try {
+      const data = await api("/api/resend-code", {
+        method: "POST",
+        body: JSON.stringify({})
+      });
+
+      setVerifyNote(data.message || "Код обновлён.", !data.success);
+    } catch (e) {
+      setVerifyNote("Ошибка соединения с сервером.", true);
+    }
+
+    restoreButton(resendCodeBtn);
+  });
+}
+
+if (closeVerifyBtn) {
+  closeVerifyBtn.addEventListener("click", closeVerifyModal);
+}
+
+if (verifyModal) {
+  verifyModal.addEventListener("click", (e) => {
+    if (e.target === verifyModal) closeVerifyModal();
+  });
+}
+
+if (verifyBtn) {
+  verifyBtn.addEventListener("click", async () => {
+    const code = verifyCode.value.trim();
+    const email = currentUser?.email || pendingVerificationEmail || "";
+
+    if (!email) {
+      setVerifyNote("Не удалось определить почту аккаунта.", true);
+      return;
+    }
+
+    if (!code) {
+      setVerifyNote("Введите код из письма.", true);
+      return;
+    }
+
+    setButtonLoading(verifyBtn, "Проверка...");
+    setVerifyNote("");
+
+    try {
+      const data = await api("/api/verify", {
+        method: "POST",
+        body: JSON.stringify({ email, code })
+      });
+
+      setVerifyNote(data.message || "Готово.", !data.success);
+
+      if (data.success) {
+        await loadMe();
+        closeVerifyModal();
+      }
+    } catch (e) {
+      setVerifyNote("Ошибка соединения с сервером.", true);
+    }
+
+    restoreButton(verifyBtn);
+  });
+}
+
+if (logoutBtn) {
+  logoutBtn.addEventListener("click", async () => {
+    try {
+      await api("/api/logout", { method: "POST" });
+    } catch (e) {}
+
+    currentUser = null;
+    updateAccountUI();
+  });
+}
+
+  showUpgrade.addEventListener("click", () => {
+  if (!requireAuth()) return;
+  if (spinning) return;
+  switchToUpgrade();
+});
+
+showCrash.addEventListener("click", () => {
+  if (!requireAuth()) return;
+  if (spinning) return;
+  switchToCrash();
+});
+
+
+  /* UPGRADE */
+  const betInput = document.getElementById("betInput");
+  const spinBtn = document.getElementById("spinBtn");
+  const arrowRotator = document.getElementById("arrowRotator");
+  const resultText = document.getElementById("resultText");
+  const statusBadge = document.getElementById("statusBadge");
+
+  let spinning = false;
+  let currentRotation = 0;
+
+  function setSpin(bet){
+    resultText.innerHTML = `Крутится...<small>Ставка: $${formatMoney(bet)}</small>`;
+    statusBadge.className = "status idle";
+    statusBadge.textContent = "spin";
+  }
+
+  function setWin(bet){
+    resultText.innerHTML = `Выигрыш: $${formatMoney(bet * 2)}<small>$${formatMoney(bet)} × 2</small>`;
+    statusBadge.className = "status win";
+    statusBadge.textContent = "win";
+  }
+
+  function setLose(bet){
+    resultText.innerHTML = `Проигрыш: $0<small>Ставка $${formatMoney(bet)} сгорела</small>`;
+    statusBadge.className = "status lose";
+    statusBadge.textContent = "lose";
+  }
+
+  function getResultByAngle(angle){
+    const a = normalize(angle);
+    return (a >= 180 && a < 360) ? "win" : "lose";
+  }
+
+async function spin(){
+  if (spinning) return;
+
+  const bet = clampBet(betInput.value);
+  betInput.value = bet;
+
+  const paid = await spendMoney(bet);
+  if (!paid) return;
+
+  spinning = true;
+  showUpgrade.disabled = true;
+  showCrash.disabled = true;
+  betInput.disabled = true;
+  spinBtn.disabled = true;
+  setSpin(bet);
+
+
+    const extraTurns = Math.floor(randomBetween(6, 10));
+    const finalLocalAngle = randomBetween(0, 360);
+    const finalRotation = currentRotation + extraTurns * 360 + finalLocalAngle;
+
+    const duration = randomBetween(5.3, 7.2);
+    const bezierX1 = randomBetween(0.07, 0.14).toFixed(2);
+    const bezierY1 = randomBetween(0.80, 0.94).toFixed(2);
+    const bezierX2 = randomBetween(0.14, 0.22).toFixed(2);
+    const bezierY2 = randomBetween(0.97, 1.00).toFixed(2);
+
+    arrowRotator.style.transition = `transform ${duration}s cubic-bezier(${bezierX1}, ${bezierY1}, ${bezierX2}, ${bezierY2})`;
+    arrowRotator.style.transform = `rotate(${finalRotation}deg)`;
+
+    const onEnd = async () => {
+      arrowRotator.removeEventListener("transitionend", onEnd);
+
+      currentRotation = normalize(finalRotation);
+
+      arrowRotator.style.transition = "none";
+      arrowRotator.style.transform = `rotate(${currentRotation}deg)`;
+      arrowRotator.offsetHeight;
+
+      requestAnimationFrame(() => {
+        arrowRotator.style.transition = "";
+      });
+
+      const result = getResultByAngle(currentRotation);
+
+      try {
+        if (result === "win") {
+          await addMoney(bet * 2);
+          setWin(bet);
+        } else {
+          setLose(bet);
+        }
+      } catch (e) {
+        alert("Не удалось обновить баланс 😵");
+      }
+
+      spinning = false;
+      showUpgrade.disabled = false;
+      showCrash.disabled = false;
+      betInput.disabled = false;
+      spinBtn.disabled = false;
+    };
+
+    arrowRotator.addEventListener("transitionend", onEnd);
+  }
+
+  spinBtn.addEventListener("click", spin);
+  betInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") {
+    if (!requireAuth()) return;
+    spin();
+  }
+});
+
+  /* CRASH */
+  const crashBet = document.getElementById("crashBet");
+  const crashStartBtn = document.getElementById("crashStartBtn");
+  const cashOutBtn = document.getElementById("cashOutBtn");
+  const crashMultiplierEl = document.getElementById("crashMultiplier");
+  const crashSub = document.getElementById("crashSub");
+  const crashResultText = document.getElementById("crashResultText");
+  const crashBadge = document.getElementById("crashBadge");
+  const crashPath = document.getElementById("crashPath");
+  const crashPathGlow = document.getElementById("crashPathGlow");
+
+  let crashRunning = false;
+  let crashCrashed = false;
+  let crashCashedOut = false;
+  let currentMultiplier = 1.00;
+  let crashPoint = 0;
+  let crashAnimationFrame = null;
+  let crashStartTime = 0;
+
+  function setCrashReady(){
+    crashMultiplierEl.textContent = "1.00x";
+    crashMultiplierEl.style.color = "#6dff9b";
+    crashMultiplierEl.style.textShadow = "0 0 28px rgba(109,255,155,.16)";
+    crashSub.textContent = "Готов к запуску";
+    crashResultText.innerHTML = `Готово к запуску<small>Забери деньги до момента краша</small>`;
+    crashBadge.className = "crash-badge ready";
+    crashBadge.textContent = "ожидание";
+    crashPath.setAttribute("d", buildCrashPath(1.00));
+    crashPathGlow.setAttribute("d", buildCrashPath(1.00));
+    crashStartBtn.disabled = false;
+    cashOutBtn.disabled = true;
+  }
+
+  function setCrashRunning(){
+    crashBadge.className = "crash-badge running";
+    crashBadge.textContent = "live";
+    crashSub.textContent = "Жми Cash Out вовремя";
+    crashResultText.innerHTML = `Раунд идёт<small>Краш уже выбран случайно, успей забрать</small>`;
+  }
+
+  function setCrashCrashed(){
+    crashMultiplierEl.style.color = "#ff8f8f";
+    crashMultiplierEl.style.textShadow = "0 0 28px rgba(255,120,120,.18)";
+    crashSub.textContent = "CRASH";
+    crashResultText.innerHTML = `Проигрыш: $0<small>Краш случился на ${crashPoint.toFixed(2)}x</small>`;
+    crashBadge.className = "crash-badge crashed";
+    crashBadge.textContent = "crashed";
+  }
+
+  function setCrashCashed(payout){
+    crashMultiplierEl.style.color = "#ffe96a";
+    crashMultiplierEl.style.textShadow = "0 0 28px rgba(255,220,90,.20)";
+    crashSub.textContent = "Успешный cash out";
+    crashResultText.innerHTML = `Забрано: $${formatMoney(payout.toFixed(2))}<small>Коэффициент: ${currentMultiplier.toFixed(2)}x</small>`;
+    crashBadge.className = "crash-badge cashed";
+    crashBadge.textContent = "cashed out";
+  }
+
+  function generateCrashPoint() {
+    const r = Math.random();
+
+    if (r < 0.45) return +(1.05 + Math.random() * 1.25).toFixed(2);
+    if (r < 0.80) return +(2.30 + Math.random() * 3.20).toFixed(2);
+    if (r < 0.95) return +(5.50 + Math.random() * 8.50).toFixed(2);
+    return +(14.00 + Math.random() * 36.00).toFixed(2);
+  }
+
+  function multiplierToProgress(mult){
+    const maxVisible = 20;
+    const capped = Math.min(mult, maxVisible);
+    return (Math.log(capped) / Math.log(maxVisible));
+  }
+
+  function buildCrashPath(mult){
+    const progress = Math.max(0.02, multiplierToProgress(mult));
+    const startX = 30;
+    const startY = 430;
+    const endX = 30 + progress * 900;
+    const endY = 430 - Math.pow(progress, 1.85) * 350;
+
+    const c1x = 30 + progress * 260;
+    const c1y = 430 - Math.pow(progress, 1.20) * 45;
+    const c2x = 30 + progress * 620;
+    const c2y = 430 - Math.pow(progress, 1.70) * 260;
+
+    return `M ${startX} ${startY} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${endX} ${endY}`;
+  }
+
+  function updateCrashGraph(mult){
+    const d = buildCrashPath(mult);
+    crashPath.setAttribute("d", d);
+    crashPathGlow.setAttribute("d", d);
+  }
+
+  function resetCrashState(){
+    crashRunning = false;
+    crashCrashed = false;
+    crashCashedOut = false;
+    currentMultiplier = 1.00;
+    crashPoint = 0;
+    if (crashAnimationFrame) cancelAnimationFrame(crashAnimationFrame);
+    crashAnimationFrame = null;
+    setCrashReady();
+  }
+
+  function runCrashFrame(now){
+    if (!crashRunning || crashCrashed || crashCashedOut) return;
+
+    const elapsed = (now - crashStartTime) / 1000;
+    currentMultiplier = +(1 + elapsed * 0.55 + Math.pow(elapsed, 2) * 0.16).toFixed(2);
+
+    crashMultiplierEl.textContent = `${currentMultiplier.toFixed(2)}x`;
+    updateCrashGraph(currentMultiplier);
+
+    if (currentMultiplier >= crashPoint) {
+      currentMultiplier = crashPoint;
+      crashMultiplierEl.textContent = `${crashPoint.toFixed(2)}x`;
+      updateCrashGraph(crashPoint);
+
+      crashRunning = false;
+      crashCrashed = true;
+      crashStartBtn.disabled = false;
+      cashOutBtn.disabled = true;
+      setCrashCrashed();
+      return;
+    }
+
+    crashAnimationFrame = requestAnimationFrame(runCrashFrame);
+  }
+
+  crashStartBtn.addEventListener("click", async () => {
+    if (!requireAuth()) return;
+    if (crashRunning) return;
+
+    const bet = clampBet(crashBet.value);
+    crashBet.value = bet;
+
+    const paid = await spendMoney(bet);
+    if (!paid) return;
+
+    if (crashAnimationFrame) cancelAnimationFrame(crashAnimationFrame);
+
+    crashRunning = true;
+    crashCrashed = false;
+    crashCashedOut = false;
+    currentMultiplier = 1.00;
+    crashPoint = generateCrashPoint();
+    crashStartTime = performance.now();
+
+    crashStartBtn.disabled = true;
+    cashOutBtn.disabled = false;
+
+    crashMultiplierEl.style.color = "#6dff9b";
+    crashMultiplierEl.style.textShadow = "0 0 28px rgba(109,255,155,.16)";
+    crashMultiplierEl.textContent = "1.00x";
+    updateCrashGraph(1.00);
+    setCrashRunning();
+
+    crashAnimationFrame = requestAnimationFrame(runCrashFrame);
+  });
+
+  cashOutBtn.addEventListener("click", async () => {
+    if (!requireAuth()) return;
+    if (!crashRunning || crashCrashed || crashCashedOut) return;
+
+    const bet = clampBet(crashBet.value);
+    const payout = Math.floor(bet * currentMultiplier);
+
+    crashRunning = false;
+    crashCashedOut = true;
+
+    if (crashAnimationFrame) cancelAnimationFrame(crashAnimationFrame);
+    crashAnimationFrame = null;
+
+    try {
+      await addMoney(payout);
+      cashOutBtn.disabled = true;
+      crashStartBtn.disabled = false;
+      setCrashCashed(payout);
+    } catch (e) {
+      alert("Не удалось обновить баланс 😵");
+    }
+  });
+
+  crashBet.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !crashRunning) {
+    if (!requireAuth()) return;
+    crashStartBtn.click();
+  }
+});
+
+  resetCrashState();
+  showRegisterTab();
+  loadMe();
+</script>
+</body>
+</html>
