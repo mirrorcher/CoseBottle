@@ -1,132 +1,96 @@
 const express = require("express");
-const { Pool } = require("pg");
-const cors = require("cors");
 const bodyParser = require("body-parser");
-
+const cors = require("cors");
 const app = express();
+const port = process.env.PORT || 3000;
+
+// 👀 Простая база в памяти
+let users = [];
+let sessions = {};
+
+// Middleware
 app.use(cors());
 app.use(bodyParser.json());
 
-// 🔌 Подключение к Postgres
-const pool = new Pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false },
-});
-
-// 🏗 Создание таблицы
-async function initDB() {
-  await pool.query(`
-    CREATE TABLE IF NOT EXISTS users (
-      id SERIAL PRIMARY KEY,
-      email TEXT UNIQUE,
-      username TEXT UNIQUE,
-      password TEXT,
-      is_verified INTEGER DEFAULT 0,
-      balance INTEGER DEFAULT 1000,
-      verification_code TEXT
-    )
-  `);
-  console.log("DB OK");
+// Вспомогательные функции
+function findUserByEmail(email) {
+  return users.find(u => u.email === email);
 }
 
-initDB();
-
-// 🎲 генерация кода
-function generateCode() {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+function formatUser(user) {
+  return {
+    email: user.email,
+    username: user.username,
+    balance: user.balance,
+    is_verified: user.is_verified
+  };
 }
 
-// 📩 РЕГИСТРАЦИЯ
-app.post("/api/register", async (req, res) => {
+// ---------------- API ----------------
+
+// Регистрация
+app.post("/api/register", (req, res) => {
   const { email, username, password } = req.body;
-  const code = generateCode();
-  try {
-    await pool.query(
-      "INSERT INTO users (email, username, password, verification_code) VALUES ($1, $2, $3, $4)",
-      [email, username, password, code]
-    );
-    res.json({ success: true, code });
-  } catch (e) {
-    if (e.code === "23505") return res.json({ error: "Пользователь уже существует" });
-    console.error(e);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
+  if (!email || !username || !password) return res.json({ success: false, message: "Заполни все поля" });
+
+  if (findUserByEmail(email)) return res.json({ success: false, message: "Пользователь уже существует" });
+
+  const user = { email, username, password, balance: 0, is_verified: 0 };
+  users.push(user);
+  sessions[email] = true; // автоматически логиним
+  res.json({ success: true, message: "Аккаунт создан", user: formatUser(user) });
 });
 
-// 🔐 ЛОГИН
-app.post("/api/login", async (req, res) => {
-  const { username, password } = req.body;
-  try {
-    const result = await pool.query(
-      "SELECT * FROM users WHERE username = $1 AND password = $2",
-      [username, password]
-    );
-    if (result.rows.length === 0) return res.json({ error: "Неверные данные" });
-    const user = result.rows[0];
-    if (!user.is_verified) return res.json({ error: "Подтверди почту" });
-    res.json({ success: true, user: { username: user.username, balance: user.balance } });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
+// Вход
+app.post("/api/login", (req, res) => {
+  const { email, password } = req.body;
+  const user = findUserByEmail(email);
+  if (!user || user.password !== password) return res.json({ success: false, message: "Неверный логин или пароль" });
+
+  sessions[email] = true;
+  res.json({ success: true, user: formatUser(user) });
 });
 
-// ✅ ПОДТВЕРЖДЕНИЕ ПОЧТЫ
-app.post("/api/verify", async (req, res) => {
-  const { username, code } = req.body;
-  try {
-    const result = await pool.query("SELECT * FROM users WHERE username = $1", [username]);
-    const user = result.rows[0];
-    if (!user) return res.json({ error: "Юзер не найден" });
-    if (user.verification_code !== code) return res.json({ error: "Неверный код" });
-    await pool.query("UPDATE users SET is_verified = 1 WHERE username = $1", [username]);
-    res.json({ success: true });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Ошибка сервера" });
-  }
+// Проверка текущего пользователя
+app.get("/api/me", (req, res) => {
+  const email = Object.keys(sessions)[0]; // для простоты берем первый активный
+  if (!email || !sessions[email]) return res.json({ loggedIn: false });
+  const user = findUserByEmail(email);
+  res.json({ loggedIn: true, user: formatUser(user) });
 });
 
-// 🔄 ПОВТОРНАЯ ОТПРАВКА КОДА
-app.post("/api/resend-code", async (req, res) => {
-  const { username } = req.body;
-  const newCode = generateCode();
-  try {
-    await pool.query("UPDATE users SET verification_code = $1 WHERE username = $2", [newCode, username]);
-    res.json({ success: true, code: newCode });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Ошибка" });
-  }
+// Выход
+app.post("/api/logout", (req, res) => {
+  const email = Object.keys(sessions)[0];
+  if (email) delete sessions[email];
+  res.json({ success: true });
 });
 
-// 💰 ИЗМЕНЕНИЕ БАЛАНСА
-app.post("/api/set-balance", async (req, res) => {
-  const { username, amount } = req.body;
-  try {
-    await pool.query("UPDATE users SET balance = balance + $1 WHERE username = $2", [amount, username]);
-    const result = await pool.query("SELECT balance FROM users WHERE username = $1", [username]);
-    res.json({ success: true, balance: result.rows[0].balance });
-  } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: "Ошибка" });
-  }
+// Обновление баланса
+app.post("/api/set-balance", (req, res) => {
+  const { balance } = req.body;
+  const email = Object.keys(sessions)[0];
+  if (!email) return res.json({ success: false, message: "Не авторизован" });
+  const user = findUserByEmail(email);
+  user.balance = balance;
+  res.json({ success: true, user: formatUser(user) });
 });
 
-const path = require('path');
-
-// 🧪 DEBUG
-app.get("/api/users", async (req, res) => {
-  const result = await pool.query("SELECT * FROM users");
-  res.json(result.rows);
+// Верификация (для примера просто ставим флаг)
+app.post("/api/verify", (req, res) => {
+  const { email } = req.body;
+  const user = findUserByEmail(email);
+  if (!user) return res.json({ success: false, message: "Пользователь не найден" });
+  user.is_verified = 1;
+  res.json({ success: true, message: "Аккаунт верифицирован" });
 });
 
-// статика и корень
-app.use(express.static(path.join(__dirname, 'public')));
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+// Переслать код (фейк)
+app.post("/api/resend-code", (req, res) => {
+  res.json({ success: true, message: "Код отправлен повторно" });
 });
 
-// 🚀 запуск
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => console.log("Server started on " + PORT));
+// ---------------- Запуск ----------------
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});

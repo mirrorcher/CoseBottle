@@ -1,24 +1,24 @@
 {
   "name": "upgrade-site",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
+    "start": "node server.js"
+    "build": "команда_для_сборки_проекта_если_нужна"
+   } 
+
+},
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
-    "body-parser": "^2.2.2",
     "cors": "^2.8.6",
     "express": "^5.2.1",
+    "pg": "^8.10.0"
     "express-session": "^1.19.0",
     "nodemailer": "^8.0.3",
-    "pg": "^8.20.0",
-    "ps": "^1.0.0",
     "sqlite3": "^6.0.1"
   }
 }
