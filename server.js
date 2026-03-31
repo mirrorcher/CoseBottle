@@ -113,10 +113,18 @@ app.post("/api/set-balance", async (req, res) => {
   }
 });
 
+const path = require('path');
+
 // 🧪 DEBUG
 app.get("/api/users", async (req, res) => {
   const result = await pool.query("SELECT * FROM users");
   res.json(result.rows);
+});
+
+// статика и корень
+app.use(express.static(path.join(__dirname, 'public')));
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
 // 🚀 запуск
