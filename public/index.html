@@ -1661,9 +1661,9 @@ function spin(targetAngle) {
 
   const totalDuration = 3000;
 
-  const accelTime = 500;   // разгон
-  const fastTime = 1500;   // быстрое вращение
-  const decelTime = 1000;  // торможение
+  const accelTime = 500;
+  const fastTime = 1500;
+  const decelTime = 1000;
 
   const startAngle = currentRotation;
 
@@ -1675,19 +1675,16 @@ function spin(targetAngle) {
     let progress;
 
     if (t < accelTime) {
-      // 🚀 разгон
       const p = t / accelTime;
-      progress = p * p; // easeIn
+      progress = p * p; // разгон
     } 
     else if (t < accelTime + fastTime) {
-      // ⚡ стабильная скорость
       const p = (t - accelTime) / fastTime;
-      progress = 0.25 + p * 0.5;
+      progress = 0.25 + p * 0.5; // быстрая фаза
     } 
     else {
-      // 🛑 торможение
       const p = (t - accelTime - fastTime) / decelTime;
-      progress = 0.75 + (1 - Math.pow(1 - p, 3)) * 0.25;
+      progress = 0.75 + (1 - Math.pow(1 - p, 3)) * 0.25; // торможение
     }
 
     currentRotation = startAngle + (targetAngle - startAngle) * progress;
@@ -1695,6 +1692,14 @@ function spin(targetAngle) {
 
     if (t < totalDuration) {
       requestAnimationFrame(animate);
+    } else {
+      spinning = false;
+      const result = getResultByAngle(currentRotation);
+      if (result === "win") {
+        setWin(currentBet);
+      } else {
+        setLose(currentBet);
+      }
     }
   }
 
