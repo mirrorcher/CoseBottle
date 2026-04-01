@@ -1656,79 +1656,51 @@ showCrash.addEventListener("click", () => {
     return (a >= 180 && a < 360) ? "win" : "lose";
   }
 
-async function spin(){
-  if (spinning) return;
+function spin(targetAngle) {
+  const start = performance.now();
 
-  const bet = clampBet(betInput.value);
-  betInput.value = bet;
+  const totalDuration = 3000;
 
-  const paid = await spendMoney(bet);
-  if (!paid) return;
+  const accelTime = 500;   // разгон
+  const fastTime = 1500;   // быстрое вращение
+  const decelTime = 1000;  // торможение
 
-  spinning = true;
-  showUpgrade.disabled = true;
-  showCrash.disabled = true;
-  betInput.disabled = true;
-  spinBtn.disabled = true;
-  setSpin(bet);
+  const startAngle = currentRotation;
 
+  function animate(time) {
+    let t = time - start;
 
-    const extraTurns = Math.floor(randomBetween(6, 10));
-    const finalLocalAngle = randomBetween(0, 360);
-    const finalRotation = currentRotation + extraTurns * 360 + finalLocalAngle;
+    if (t > totalDuration) t = totalDuration;
 
-    const duration = randomBetween(5.3, 7.2);
-    const bezierX1 = randomBetween(0.07, 0.14).toFixed(2);
-    const bezierY1 = randomBetween(0.80, 0.94).toFixed(2);
-    const bezierX2 = randomBetween(0.14, 0.22).toFixed(2);
-    const bezierY2 = randomBetween(0.97, 1.00).toFixed(2);
+    let progress;
 
-    arrowRotator.style.transition = `transform ${duration}s cubic-bezier(${bezierX1}, ${bezierY1}, ${bezierX2}, ${bezierY2})`;
-    arrowRotator.style.transform = `rotate(${finalRotation}deg)`;
+    if (t < accelTime) {
+      // 🚀 разгон
+      const p = t / accelTime;
+      progress = p * p; // easeIn
+    } 
+    else if (t < accelTime + fastTime) {
+      // ⚡ стабильная скорость
+      const p = (t - accelTime) / fastTime;
+      progress = 0.25 + p * 0.5;
+    } 
+    else {
+      // 🛑 торможение
+      const p = (t - accelTime - fastTime) / decelTime;
+      progress = 0.75 + (1 - Math.pow(1 - p, 3)) * 0.25;
+    }
 
-    const onEnd = async () => {
-      arrowRotator.removeEventListener("transitionend", onEnd);
+    currentRotation = startAngle + (targetAngle - startAngle) * progress;
+    arrowRotator.style.transform = `rotate(${currentRotation}deg)`;
 
-      currentRotation = normalize(finalRotation);
-
-      arrowRotator.style.transition = "none";
-      arrowRotator.style.transform = `rotate(${currentRotation}deg)`;
-      arrowRotator.offsetHeight;
-
-      requestAnimationFrame(() => {
-        arrowRotator.style.transition = "";
-      });
-
-      const result = getResultByAngle(currentRotation);
-
-      try {
-        if (result === "win") {
-          await addMoney(bet * 2);
-          setWin(bet);
-        } else {
-          setLose(bet);
-        }
-      } catch (e) {
-        alert("Не удалось обновить баланс 😵");
-      }
-
-      spinning = false;
-      showUpgrade.disabled = false;
-      showCrash.disabled = false;
-      betInput.disabled = false;
-      spinBtn.disabled = false;
-    };
-
-    arrowRotator.addEventListener("transitionend", onEnd);
+    if (t < totalDuration) {
+      requestAnimationFrame(animate);
+    }
   }
 
-  spinBtn.addEventListener("click", spin);
-  betInput.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") {
-    if (!requireAuth()) return;
-    spin();
-  }
-});
+  requestAnimationFrame(animate);
+}
+
 
   /* CRASH */
   const crashBet = document.getElementById("crashBet");
