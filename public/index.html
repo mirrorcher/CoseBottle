@@ -1832,36 +1832,15 @@ function spin(targetAngle) {
     crashAnimationFrame = requestAnimationFrame(runCrashFrame);
   }
 
-  crashStartBtn.addEventListener("click", async () => {
-    if (!requireAuth()) return;
-    if (crashRunning) return;
+  function start() {
+    console.log("clicked"); // проверка
 
-    const bet = clampBet(crashBet.value);
-    crashBet.value = bet;
+    const win = play();
 
-    const paid = await spendMoney(bet);
-    if (!paid) return;
+    const target = getTarget(win) + Math.PI * 6;
 
-    if (crashAnimationFrame) cancelAnimationFrame(crashAnimationFrame);
-
-    crashRunning = true;
-    crashCrashed = false;
-    crashCashedOut = false;
-    currentMultiplier = 1.00;
-    crashPoint = generateCrashPoint();
-    crashStartTime = performance.now();
-
-    crashStartBtn.disabled = true;
-    cashOutBtn.disabled = false;
-
-    crashMultiplierEl.style.color = "#6dff9b";
-    crashMultiplierEl.style.textShadow = "0 0 28px rgba(109,255,155,.16)";
-    crashMultiplierEl.textContent = "1.00x";
-    updateCrashGraph(1.00);
-    setCrashRunning();
-
-    crashAnimationFrame = requestAnimationFrame(runCrashFrame);
-  });
+    spin(target);
+  }
 
   cashOutBtn.addEventListener("click", async () => {
     if (!requireAuth()) return;
